@@ -38,7 +38,7 @@ class Tunable(ABC):
                 break
 
 
-@dataclass
+@dataclass  # type: ignore
 class TunablePrimitive(Tunable):
     configs: List[TrackBarConfig]
     values: Optional[Dict[str, int]] = None
@@ -178,5 +178,9 @@ class CompositeFilter(Tunable):
         return img_out
 
     def reflect_trackbar(self) -> None:
-        for primitive in self.converters + self.segmetors:
-            primitive.reflect_trackbar()
+
+        for c in self.converters:
+            c.reflect_trackbar()
+
+        for s in self.segmetors:
+            s.reflect_trackbar()
