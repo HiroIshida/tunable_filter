@@ -95,7 +95,7 @@ class TunablePrimitive(Tunable):
                     default_value = int(0.5 * (config.val_max + config.val_min))
 
                 cv2.createTrackbar(
-                    config.name,
+                    self.get_fullname(config.name),
                     self.window_name,
                     default_value,
                     config.val_max,
@@ -112,11 +112,16 @@ class TunablePrimitive(Tunable):
 
     def reflect_trackbar(self):
         for config in self.configs:
-            self.values[config.name] = cv2.getTrackbarPos(config.name, self.window_name)
+            fullname = self.get_fullname(config.name)
+            self.values[config.name] = cv2.getTrackbarPos(fullname, self.window_name)
 
     def export_dict(self) -> Dict:
         assert self.values is not None
         return self.values
+
+    @classmethod
+    def get_fullname(cls, name):
+        return cls.__name__ + ':' + name
 
 
 class LogicalFilterBase(TunablePrimitive):
@@ -180,19 +185,19 @@ class CropLogicalFilter(LogicalFilterBase):
     def from_image(cls, rgb: np.ndarray):
         width, height, _ = rgb.shape
         configs = []
-        configs.append(TrackBarConfig('crop_x_min', 0, width))
-        configs.append(TrackBarConfig('crop_x_max', 0, width))
-        configs.append(TrackBarConfig('crop_y_min', 0, height))
-        configs.append(TrackBarConfig('crop_y_max', 0, height))
+        configs.append(TrackBarConfig('x_min', 0, width))
+        configs.append(TrackBarConfig('x_max', 0, width))
+        configs.append(TrackBarConfig('y_min', 0, height))
+        configs.append(TrackBarConfig('y_max', 0, height))
         return cls.create_tunable(configs)
 
     def _call_impl(self, rgb: np.ndarray) -> np.ndarray:
         assert self.values is not None
         arr = np.ones(rgb.shape[:2], dtype=bool)
-        arr[:self.values['crop_x_min'], :] = False
-        arr[self.values['crop_x_max']:, :] = False
-        arr[:, :self.values['crop_y_min']] = False
-        arr[:, self.values['crop_y_max']:] = False
+        arr[:self.values['x_min'], :] = False
+        arr[self.values['x_max']:, :] = False
+        arr[:, :self.values['y_min']] = False
+        arr[:, self.values['y_max']:] = False
         return arr
 
 
@@ -248,15 +253,15 @@ class CropResizer(ResizerBase):
     def from_image(cls, rgb: np.ndarray):
         width, height, _ = rgb.shape
         configs = []
-        configs.append(TrackBarConfig('crop_x_min', 0, width))
-        configs.append(TrackBarConfig('crop_x_max', 0, width))
-        configs.append(TrackBarConfig('crop_y_min', 0, height))
-        configs.append(TrackBarConfig('crop_y_max', 0, height))
+        configs.append(TrackBarConfig('x_min', 0, width))
+        configs.append(TrackBarConfig('x_max', 0, width))
+        configs.append(TrackBarConfig('y_min', 0, height))
+        configs.append(TrackBarConfig('y_max', 0, height))
         return cls.create_tunable(configs)
 
     def _call_impl(self, rgb: np.ndarray) -> np.ndarray:
         assert self.values is not None
-        out = rgb[self.values['crop_x_min']:self.values['crop_x_max'], self.values['crop_y_min']:self.values['crop_y_max']]
+        out = rgb[self.values['x_min']:self.values['x_max'], self.values['y_min']:self.values['y_max']]
         return out
 
 
@@ -271,7 +276,7 @@ class ResolutionChangeResizer(ResizerBase):
 
     def _call_impl(self, rgb: np.ndarray) -> np.ndarray:
         assert self.values is not None
-        resol = self.values['resol']
+        resol = max(self.values['resol'], 1)
         interp_method = cv2.INTER_CUBIC
         rgb_resized = cv2.resize(rgb, (resol, resol), interpolation=interp_method)
         return rgb_resized
