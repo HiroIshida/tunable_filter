@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass
 import queue
+import yaml
 import cv2
 import numpy as np
 from typing import Dict, List, Optional, Type, TypeVar
@@ -36,6 +37,16 @@ class Tunable(ABC):
     @abstractmethod
     def export_dict(self) -> Dict:
         pass
+
+    def dump_yaml(self, file_name: str) -> None:
+        with open(file_name, 'w') as f:
+            yaml.dump(self.export_dict(), f, default_flow_style=False)
+
+    @classmethod
+    def from_yaml(cls: Type[TunableT], file_name: str) -> TunableT:
+        with open(file_name, 'r') as f:
+            dic = yaml.safe_load(f)
+        return cls.from_dict(dic)
 
     @classmethod
     @abstractmethod
@@ -83,7 +94,7 @@ class TunablePrimitive(Tunable):
 
     @classmethod
     def from_dict(cls, dic):
-        return cls([], dic)
+        return cls(False, [], dic)
 
     @classmethod
     def create_tunable(cls, configs: List[TrackBarConfig]):
@@ -246,16 +257,16 @@ def get_all_concrete_tunable_primitive_types() -> List[Type[TunablePrimitive]]:
 
 @dataclass
 class CompositeFilter(Tunable):
-    converters: List[FilterBase]
-    segmetors: List[LogicalFilterBase]
+    filters: List[FilterBase]
+    logical_filters: List[LogicalFilterBase]
     resizers: List[ResizerBase]
 
     def __call__(self, img_inp: np.ndarray) -> np.ndarray:
         img_out = deepcopy(img_inp)
-        for converter in self.converters:
+        for converter in self.filters:
             img_out = converter(img_out)
         bool_mat = np.ones(img_out.shape[:2], dtype=bool)
-        for segmentor in self.segmetors:
+        for segmentor in self.logical_filters:
             bool_mat *= segmentor(img_out)
         img_out[np.logical_not(bool_mat)] = (0, 0, 0)
 
@@ -264,7 +275,7 @@ class CompositeFilter(Tunable):
         return img_out
 
     def reflect_trackbar(self) -> None:
-        for primitives in [self.converters, self.segmetors, self.resizers]:
+        for primitives in [self.filters, self.logical_filters, self.resizers]:
             for p in primitives:  # type: ignore
                 p.reflect_trackbar()
 
@@ -272,25 +283,25 @@ class CompositeFilter(Tunable):
     def from_dict(cls, dic):
         types = get_all_concrete_tunable_primitive_types()
 
-        converters = []
-        segmentors = []
+        filters = []
+        logical_filters = []
         resizers = []
         for key, subdict in dic.items():
             for t in types:
                 if key == t.__name__:
                     primitive = t.from_dict(subdict)
                     if issubclass(t, FilterBase):
-                        converters.append(primitive)
+                        filters.append(primitive)
                     if issubclass(t, LogicalFilterBase):
-                        segmentors.append(primitive)
+                        logical_filters.append(primitive)
                     if issubclass(t, ResizerBase):
                         resizers.append(primitive)
 
-        return cls(False, converters, segmentors, resizers)
+        return cls(False, filters, logical_filters, resizers)
 
     def export_dict(self) -> Dict:
         d = {}
-        for primitives in [self.converters, self.segmetors, self.resizers]:
+        for primitives in [self.filters, self.logical_filters, self.resizers]:
             for p in primitives:  # type: ignore
                 d[p.__class__.__name__] = p.values
         return d
