@@ -7,6 +7,8 @@ import cv2
 import numpy as np
 from typing import Dict, List, Optional
 
+_window_name = 'window'
+_initialized = {'?': False}
 
 @dataclass
 class TrackBarConfig:
@@ -25,14 +27,29 @@ class Tunable(ABC):
     def __call__(self, rgb: np.ndarray) -> np.ndarray:
         pass
 
+    def start_tuning(self, img: np.ndarray):
+        assert img.ndim == 3
+        assert img.dtype == np.uint8
+        while True:
+            img_show = self.__call__(img)
+            cv2.imshow(_window_name, img_show)
+            self.reflect_trackbar()
+            if cv2.waitKey(50) == ord('q'):
+                break
+
 
 @dataclass
 class TunablePrimitive(Tunable):
     configs: List[TrackBarConfig]
     values: Optional[Dict[str, int]] = None
-    window_name: str = 'window'
+    window_name: str = _window_name
 
     def __post_init__(self):
+        if not _initialized['?']:
+            cv2.namedWindow(_window_name)
+            _initialized['?'] = True
+            print('initialize window')
+
         if self.values is None:
             # auto set initial values
             self.values = {}
@@ -117,7 +134,7 @@ class HSVLogicalFilter(LogicalFilterBase):
 
     def _call_impl(self, rgb: np.ndarray) -> np.ndarray:
         assert self.values is not None
-        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        hsv = cv2.cvtColor(rgb, cv2.COLOR_BGR2HSV)
 
         bool_mat = np.ones(rgb.shape[:2], dtype=bool)
         for i, t in enumerate(['h', 's', 'v']) :
