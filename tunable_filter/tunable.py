@@ -347,6 +347,23 @@ class CompositeFilter(Tunable):
 
         return cls.construct_tunable(filters, logical_filters, resizers)
 
+    def extract_subfilter(self, keys: List[Type[TunablePrimitive]]) -> 'CompositeFilter':
+        filters = []
+        logical_filters = []
+        resizers = []
+
+        for primitives in [self.filters, self.logical_filters, self.resizers]:
+            for p in primitives:  # type: ignore
+                t = p.__class__
+                if t in keys:
+                    if issubclass(t, FilterBase):
+                        filters.append(p)
+                    if issubclass(t, LogicalFilterBase):
+                        logical_filters.append(p)
+                    if issubclass(t, ResizerBase):
+                        resizers.append(p)
+        return self.construct_tunable(filters, logical_filters, resizers)
+
     def export_dict(self) -> Dict:
         d = {}
         for primitives in [self.filters, self.logical_filters, self.resizers]:
