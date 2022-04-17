@@ -147,7 +147,7 @@ class ResizerBase(TunablePrimitive):
         assert rgb.ndim == 3
         assert rgb.dtype == np.uint8
         out = self._call_impl(rgb)
-        if out.shape[0] < 5 or out.shape[0] < 5:
+        if out.shape[0] < 5 or out.shape[1] < 5:
             out = np.zeros((5, 5, 3), dtype=np.uint8)
         assert out.ndim == 3
         assert out.dtype == np.uint8
