@@ -309,7 +309,7 @@ class CompositeFilter(Tunable):
         bool_mat = np.ones(img_out.shape[:2], dtype=bool)
         for segmentor in self.logical_filters:
             bool_mat *= segmentor(img_out, ignore_assertion=ignore_assertion)
-        img_out[np.logical_not(bool_mat)] = (0, 0, 0)
+        img_out[np.logical_not(bool_mat)] *= 0
 
         for resizer in self.resizers:
             img_out = resizer(img_out, ignore_assertion=ignore_assertion)
