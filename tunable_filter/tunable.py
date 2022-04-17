@@ -229,7 +229,10 @@ class GaussianBlurFilter(FilterBase):
     def _call_impl(self, rgb: np.ndarray) -> np.ndarray:
         assert self.values is not None
         width = self.values['kernel_width']
-        blured = cv2.blur(rgb, (width, width))
+        if width > 0:
+            blured = cv2.blur(rgb, (width, width))
+        else:
+            blured = rgb
         return blured
 
 
