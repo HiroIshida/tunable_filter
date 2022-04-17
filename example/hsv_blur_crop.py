@@ -11,13 +11,13 @@ class HSVBlurCropConverter(CompositeFilter):
 
     @classmethod
     def from_image(cls, img: np.ndarray):
-        converters = []
-        converters.append(GaussianBlurFilter.default())
-        segmentors = []
-        segmentors.append(HSVLogicalFilter.default())
+        filteres = []
+        filteres.append(GaussianBlurFilter.default())
+        logical_filters = []
+        logical_filters.append(HSVLogicalFilter.default())
         resizers = []
         resizers.append(CropResizer.from_image(img))
-        return cls(True, converters, segmentors, resizers)
+        return cls(True, filteres, logical_filters, resizers)
 
 
 if __name__ == '__main__':
