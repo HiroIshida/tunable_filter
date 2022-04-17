@@ -8,7 +8,13 @@ from tunable_filter.tunable import HSVLogicalFilter
 from tunable_filter.tunable import CropResizer
 
 
-class HSVBlurCropConverter(CompositeFilter):
+class HSVBlurCropFilter(CompositeFilter):
+    # Define your custom filter by inheriting CompositeFilter
+    # Only method you must implement is a factory method
+    # In this example the classmethod is named `from_image`
+    # but whatever classmethod name is ok.
+    # As for factory method in python, prease see:
+    # https://stackoverflow.com/questions/682504/what-is-a-clean-pythonic-way-to-implement-multiple-constructors/682545#682545
 
     @classmethod
     def from_image(cls, img: np.ndarray):
@@ -28,16 +34,16 @@ if __name__ == '__main__':
     tuning = args.tune
 
     yaml_file_path = '/tmp/filter.yaml'
-    img = cv2.imread('./dish.jpg')
+    img = cv2.imread('./media/dish.jpg')
 
     if tuning:
-        tunable = HSVBlurCropConverter.from_image(img)
+        tunable = HSVBlurCropFilter.from_image(img)
         print('press q to finish tuning')
         tunable.start_tuning(img)
         pprint.pprint(tunable.export_dict())
         tunable.dump_yaml(yaml_file_path)
     else:
-        f = HSVBlurCropConverter.from_yaml(yaml_file_path)
+        f = HSVBlurCropFilter.from_yaml(yaml_file_path)
         img_filtered = f(img)
         cv2.imshow('debug', img_filtered)
         print('press q to terminate')
