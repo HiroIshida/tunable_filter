@@ -87,13 +87,20 @@ class TunablePrimitive(Tunable):
             # auto set initial values
             self.values = {}
             for config in self.configs:
+                if config.name.endswith('min'):
+                    default_value = config.val_min
+                elif config.name.endswith('max'):
+                    default_value = config.val_max
+                else:
+                    default_value = int(0.5 * (config.val_max + config.val_min))
+
                 cv2.createTrackbar(
                     config.name,
                     self.window_name,
-                    config.val_min,
+                    default_value,
                     config.val_max,
                     lambda x: None)
-                self.values[config.name] = int(0.5 * (config.val_min + config.val_max))
+                self.values[config.name] = default_value
 
     @classmethod
     def from_dict(cls, dic):
