@@ -3,7 +3,7 @@ import numpy as np
 from tunable_filter.tunable import CompositeFilter
 from tunable_filter.tunable import GaussianBlurFilter
 from tunable_filter.tunable import HSVLogicalFilter
-from tunable_filter.tunable import CropLogicalFilter
+from tunable_filter.tunable import CropResizer
 
 
 class HSVBlurCropConverter(CompositeFilter):
@@ -14,8 +14,9 @@ class HSVBlurCropConverter(CompositeFilter):
         converters.append(GaussianBlurFilter.default())
         segmentors = []
         segmentors.append(HSVLogicalFilter.default())
-        segmentors.append(CropLogicalFilter.from_image(img))
-        return cls(converters, segmentors)
+        resizers = []
+        resizers.append(CropResizer.from_image(img))
+        return cls(converters, segmentors, resizers)
 
 
 if __name__ == '__main__':

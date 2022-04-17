@@ -81,6 +81,7 @@ class LogicalFilterBase(TunablePrimitive):
         assert rgb.ndim == 3
         assert rgb.dtype == np.uint8
         out = self._call_impl(rgb)
+        assert rgb.shape[:2] == out.shape[:2]
         assert out.ndim == 2
         assert out.dtype == bool
         return out
@@ -96,6 +97,24 @@ class FilterBase(TunablePrimitive):
         assert rgb.ndim == 3
         assert rgb.dtype == np.uint8
         out = self._call_impl(rgb)
+        assert rgb.shape == out.shape
+        assert out.ndim == 3
+        assert out.dtype == np.uint8
+        return out
+
+    @abstractmethod
+    def _call_impl(self, rgb: np.ndarray) -> np.ndarray:
+        pass
+
+
+class ResizerBase(TunablePrimitive):
+
+    def __call__(self, rgb: np.ndarray) -> np.ndarray:
+        assert rgb.ndim == 3
+        assert rgb.dtype == np.uint8
+        out = self._call_impl(rgb)
+        if out.shape[0] < 5 or out.shape[0] < 5:
+            out = np.zeros((5, 5, 3), dtype=np.uint8)
         assert out.ndim == 3
         assert out.dtype == np.uint8
         return out
@@ -170,10 +189,29 @@ class GaussianBlurFilter(FilterBase):
         return blured
 
 
+class CropResizer(ResizerBase):
+
+    @classmethod
+    def from_image(cls, rgb: np.ndarray):
+        width, height, _ = rgb.shape
+        configs = []
+        configs.append(TrackBarConfig('crop_x_min', 0, width))
+        configs.append(TrackBarConfig('crop_x_max', 0, width))
+        configs.append(TrackBarConfig('crop_y_min', 0, height))
+        configs.append(TrackBarConfig('crop_y_max', 0, height))
+        return cls(configs)
+
+    def _call_impl(self, rgb: np.ndarray) -> np.ndarray:
+        assert self.values is not None
+        out = rgb[self.values['crop_x_min']:self.values['crop_x_max'], self.values['crop_y_min']:self.values['crop_y_max']]
+        return out
+
+
 @dataclass
 class CompositeFilter(Tunable):
     converters: List[FilterBase]
     segmetors: List[LogicalFilterBase]
+    resizers: List[ResizerBase]
 
     def __call__(self, img_inp: np.ndarray) -> np.ndarray:
         img_out = deepcopy(img_inp)
@@ -183,19 +221,19 @@ class CompositeFilter(Tunable):
         for segmentor in self.segmetors:
             bool_mat *= segmentor(img_out)
         img_out[np.logical_not(bool_mat)] = (0, 0, 0)
+
+        for resizer in self.resizers:
+            img_out = resizer(img_out)
         return img_out
 
     def reflect_trackbar(self) -> None:
-
-        for c in self.converters:
-            c.reflect_trackbar()
-
-        for s in self.segmetors:
-            s.reflect_trackbar()
+        for primitives in [self.converters, self.segmetors, self.resizers]:
+            for p in primitives:  # type: ignore
+                p.reflect_trackbar()
 
     def export_dict(self) -> Dict[str, int]:
         d = {}
-        for primitives in [self.converters, self.segmetors]:
+        for primitives in [self.converters, self.segmetors, self.resizers]:
             for p in primitives:  # type: ignore
                 assert p.values is not None
                 for key, val in p.values.items():
