@@ -280,7 +280,14 @@ class CompositeFilter(Tunable):
                 p.reflect_trackbar()
 
     @classmethod
-    def from_dict(cls, dic):
+    def construct_untunable(cls,
+                            filters: List[FilterBase],
+                            logical_filters: List[LogicalFilterBase],
+                            resizers: List[ResizerBase]) -> 'CompositeFilter':
+        return cls(False, filters, logical_filters, resizers)
+
+    @classmethod
+    def from_dict(cls, dic) -> 'CompositeFilter':
         types = get_all_concrete_tunable_primitive_types()
 
         filters = []
@@ -297,7 +304,7 @@ class CompositeFilter(Tunable):
                     if issubclass(t, ResizerBase):
                         resizers.append(primitive)
 
-        return cls(False, filters, logical_filters, resizers)
+        return cls.construct_untunable(filters, logical_filters, resizers)
 
     def export_dict(self) -> Dict:
         d = {}
