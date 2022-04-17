@@ -17,8 +17,8 @@ A demo is in `example/hsv_blur_crop.py`.
 ```
 python3 example/hsv_blur_crop.py --tune
 ```
-https://user-images.githubusercontent.com/38597814/163724495-d1ff5fcc-1aa8-4a7f-bed6-533860d26bde.mp4
 
+![demo](https://user-images.githubusercontent.com/38597814/163725554-b89412b9-b624-4cab-8906-b162827717a6.gif)
 
 ### 2. Then check that filter is reconstructed by
 ```
