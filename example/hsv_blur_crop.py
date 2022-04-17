@@ -17,7 +17,7 @@ class HSVBlurCropConverter(CompositeFilter):
         segmentors.append(HSVLogicalFilter.default())
         resizers = []
         resizers.append(CropResizer.from_image(img))
-        return cls(converters, segmentors, resizers)
+        return cls(True, converters, segmentors, resizers)
 
 
 if __name__ == '__main__':

@@ -17,7 +17,9 @@ class TrackBarConfig:
     val_max: int
 
 
+@dataclass  # type: ignore
 class Tunable(ABC):
+    tunable: bool
 
     @abstractmethod
     def reflect_trackbar(self) -> None:
@@ -32,6 +34,7 @@ class Tunable(ABC):
         pass
 
     def start_tuning(self, img: np.ndarray):
+        assert self.tunable
         assert img.ndim == 3
         assert img.dtype == np.uint8
         while True:
@@ -49,6 +52,9 @@ class TunablePrimitive(Tunable):
     window_name: str = _window_name
 
     def __post_init__(self):
+        if not self.tunable:
+            return
+
         if not _initialized['?']:
             cv2.namedWindow(_window_name)
             _initialized['?'] = True
@@ -65,6 +71,10 @@ class TunablePrimitive(Tunable):
                     config.val_max,
                     lambda x: None)
                 self.values[config.name] = int(0.5 * (config.val_min + config.val_max))
+
+    @classmethod
+    def create_tunable(cls, configs: List[TrackBarConfig]):
+        return cls(True, configs)
 
     def reflect_trackbar(self):
         for config in self.configs:
@@ -134,7 +144,7 @@ class CropLogicalFilter(LogicalFilterBase):
         configs.append(TrackBarConfig('crop_x_max', 0, width))
         configs.append(TrackBarConfig('crop_y_min', 0, height))
         configs.append(TrackBarConfig('crop_y_max', 0, height))
-        return cls(configs)
+        return cls.create_tunable(configs)
 
     def _call_impl(self, rgb: np.ndarray) -> np.ndarray:
         assert self.values is not None
@@ -157,7 +167,7 @@ class HSVLogicalFilter(LogicalFilterBase):
         configs.append(TrackBarConfig('s_max', 0, 255))
         configs.append(TrackBarConfig('v_min', 0, 255))
         configs.append(TrackBarConfig('v_max', 0, 255))
-        return cls(configs)
+        return cls.create_tunable(configs)
 
     def _call_impl(self, rgb: np.ndarray) -> np.ndarray:
         assert self.values is not None
@@ -180,7 +190,7 @@ class GaussianBlurFilter(FilterBase):
     def default(cls):
         configs = []
         configs.append(TrackBarConfig('kernel_width', 1, 20))
-        return cls(configs)
+        return cls.create_tunable(configs)
 
     def _call_impl(self, rgb: np.ndarray) -> np.ndarray:
         assert self.values is not None
@@ -199,7 +209,7 @@ class CropResizer(ResizerBase):
         configs.append(TrackBarConfig('crop_x_max', 0, width))
         configs.append(TrackBarConfig('crop_y_min', 0, height))
         configs.append(TrackBarConfig('crop_y_max', 0, height))
-        return cls(configs)
+        return cls.create_tunable(configs)
 
     def _call_impl(self, rgb: np.ndarray) -> np.ndarray:
         assert self.values is not None
