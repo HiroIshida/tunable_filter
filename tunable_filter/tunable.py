@@ -28,7 +28,7 @@ class Tunable(ABC):
         pass
 
     @abstractmethod
-    def export_dict(self) -> Dict[str, int]:
+    def export_dict(self) -> Dict:
         pass
 
     def start_tuning(self, img: np.ndarray):
@@ -70,7 +70,7 @@ class TunablePrimitive(Tunable):
         for config in self.configs:
             self.values[config.name] = cv2.getTrackbarPos(config.name, self.window_name)
 
-    def export_dict(self) -> Dict[str, int]:
+    def export_dict(self) -> Dict:
         assert self.values is not None
         return self.values
 
@@ -231,12 +231,9 @@ class CompositeFilter(Tunable):
             for p in primitives:  # type: ignore
                 p.reflect_trackbar()
 
-    def export_dict(self) -> Dict[str, int]:
+    def export_dict(self) -> Dict:
         d = {}
         for primitives in [self.converters, self.segmetors, self.resizers]:
             for p in primitives:  # type: ignore
-                assert p.values is not None
-                for key, val in p.values.items():
-                    assert key not in d
-                    d[key] = val
+                d[p.__class__.__name__] = p.values
         return d
