@@ -302,17 +302,17 @@ class CompositeFilter(Tunable):
     logical_filters: List[LogicalFilterBase]
     resizers: List[ResizerBase]
 
-    def __call__(self, img_inp: np.ndarray) -> np.ndarray:
+    def __call__(self, img_inp: np.ndarray, ignore_assertion: bool = False) -> np.ndarray:
         img_out = deepcopy(img_inp)
         for converter in self.filters:
-            img_out = converter(img_out)
+            img_out = converter(img_out, ignore_assertion=ignore_assertion)
         bool_mat = np.ones(img_out.shape[:2], dtype=bool)
         for segmentor in self.logical_filters:
-            bool_mat *= segmentor(img_out)
+            bool_mat *= segmentor(img_out, ignore_assertion=ignore_assertion)
         img_out[np.logical_not(bool_mat)] = (0, 0, 0)
 
         for resizer in self.resizers:
-            img_out = resizer(img_out)
+            img_out = resizer(img_out, ignore_assertion=ignore_assertion)
         return img_out
 
     def reflect_trackbar(self) -> None:
