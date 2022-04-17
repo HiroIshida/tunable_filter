@@ -17,4 +17,5 @@ setup(
     license='MIT',
     install_requires=install_requires,
     packages=find_packages(exclude=('tests', 'docs')),
+    package_data={'tunable_filter': ['py.typed']}
 )
