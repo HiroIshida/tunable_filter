@@ -1,3 +1,4 @@
+import pprint
 import numpy as np
 from tunable_filter.tunable import CompositeFilter
 from tunable_filter.tunable import GaussianBlurFilter
@@ -20,4 +21,7 @@ class HSVBlurCropConverter(CompositeFilter):
 if __name__ == '__main__':
     img = np.random.randint(0, high=255, size=(224, 224, 3)).astype(np.uint8)
     tunable = HSVBlurCropConverter.from_image(img)
+    print('press q to finish tuning')
     tunable.start_tuning(img)
+    dic = tunable.export_dict()
+    pprint.pprint(dic)

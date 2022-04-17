@@ -27,6 +27,10 @@ class Tunable(ABC):
     def __call__(self, rgb: np.ndarray) -> np.ndarray:
         pass
 
+    @abstractmethod
+    def export_dict(self) -> Dict[str, int]:
+        pass
+
     def start_tuning(self, img: np.ndarray):
         assert img.ndim == 3
         assert img.dtype == np.uint8
@@ -65,6 +69,10 @@ class TunablePrimitive(Tunable):
     def reflect_trackbar(self):
         for config in self.configs:
             self.values[config.name] = cv2.getTrackbarPos(config.name, self.window_name)
+
+    def export_dict(self) -> Dict[str, int]:
+        assert self.values is not None
+        return self.values
 
 
 class LogicalFilterBase(TunablePrimitive):
@@ -184,3 +192,13 @@ class CompositeFilter(Tunable):
 
         for s in self.segmetors:
             s.reflect_trackbar()
+
+    def export_dict(self) -> Dict[str, int]:
+        d = {}
+        for primitives in [self.converters, self.segmetors]:
+            for p in primitives:  # type: ignore
+                assert p.values is not None
+                for key, val in p.values.items():
+                    assert key not in d
+                    d[key] = val
+        return d
