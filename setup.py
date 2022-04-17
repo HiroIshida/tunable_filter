@@ -4,7 +4,7 @@ setup_requires = []
 
 install_requires = [
     "numpy",
-    "opencv-python",
+    "opencv-python>=4.2.0",
     "dataclasses",  # for 3.6
     "PyYAML",
     "types-PyYAML"

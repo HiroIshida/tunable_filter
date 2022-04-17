@@ -60,7 +60,7 @@ class Tunable(ABC):
         assert img.dtype == np.uint8
         while True:
             img_out = self.__call__(img)
-            shape_show = list(reversed(img_orig.shape[:2]))
+            shape_show = tuple(reversed(img_orig.shape[:2]))
             img_show = cv2.resize(img_out, shape_show, interpolation=cv2.INTER_NEAREST)
             cv2.imshow(_window_name, img_show)
             self.reflect_trackbar()
