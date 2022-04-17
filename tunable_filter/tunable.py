@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 from abc import ABC, abstractmethod
 from copy import deepcopy
-import argparse
 from dataclasses import dataclass
 import cv2
 import numpy as np
@@ -9,6 +8,7 @@ from typing import Dict, List, Optional
 
 _window_name = 'window'
 _initialized = {'?': False}
+
 
 @dataclass
 class TrackBarConfig:
@@ -55,11 +55,11 @@ class TunablePrimitive(Tunable):
             self.values = {}
             for config in self.configs:
                 cv2.createTrackbar(
-                        config.name,
-                        self.window_name,
-                        config.val_min,
-                        config.val_max,
-                        lambda x: None)
+                    config.name,
+                    self.window_name,
+                    config.val_min,
+                    config.val_max,
+                    lambda x: None)
                 self.values[config.name] = int(0.5 * (config.val_min + config.val_max))
 
     def reflect_trackbar(self):
@@ -137,7 +137,7 @@ class HSVLogicalFilter(LogicalFilterBase):
         hsv = cv2.cvtColor(rgb, cv2.COLOR_BGR2HSV)
 
         bool_mat = np.ones(rgb.shape[:2], dtype=bool)
-        for i, t in enumerate(['h', 's', 'v']) :
+        for i, t in enumerate(['h', 's', 'v']):
             key_min = t + '_min'
             key_max = t + '_max'
             b_min = self.values[key_min]

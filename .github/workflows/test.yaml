@@ -28,6 +28,14 @@ jobs:
               run: |
                   pip3 install -e .
 
+            - name: pip install formatting
+              run: |
+                python -m pip install --upgrade pip
+                pip install hacking isort
+
+            - name: Check format
+              run: flake8 .
+
             - name: pip install mypy
               run: |
                   pip3 install mypy==0.910
