@@ -100,8 +100,8 @@ class TunablePrimitive(Tunable):
         return cls(False, [], dic)
 
     @classmethod
-    def create_tunable(cls, configs: List[TrackBarConfig]):
-        return cls(True, configs)
+    def create_tunable(cls, configs: List[TrackBarConfig], *args, **kwargs):
+        return cls(True, configs, *args, **kwargs)
 
     def reflect_trackbar(self):
         for config in self.configs:
@@ -242,6 +242,23 @@ class CropResizer(ResizerBase):
         assert self.values is not None
         out = rgb[self.values['crop_x_min']:self.values['crop_x_max'], self.values['crop_y_min']:self.values['crop_y_max']]
         return out
+
+
+class ResolutionChangeResizer(ResizerBase):
+    @classmethod
+    def default(cls,
+                resol_min: int = 8,
+                resol_max: int = 1024):
+        configs = []
+        configs.append(TrackBarConfig('resol', resol_min, resol_max))
+        return cls.create_tunable(configs)
+
+    def _call_impl(self, rgb: np.ndarray) -> np.ndarray:
+        assert self.values is not None
+        resol = self.values['resol']
+        interp_method = cv2.INTER_CUBIC
+        rgb_resized = cv2.resize(rgb, (resol, resol), interpolation=interp_method)
+        return rgb_resized
 
 
 def get_all_concrete_tunable_primitive_types() -> List[Type[TunablePrimitive]]:

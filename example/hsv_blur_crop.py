@@ -6,6 +6,7 @@ from tunable_filter.tunable import CompositeFilter
 from tunable_filter.tunable import GaussianBlurFilter
 from tunable_filter.tunable import HSVLogicalFilter
 from tunable_filter.tunable import CropResizer
+from tunable_filter.tunable import ResolutionChangeResizer
 
 
 class HSVBlurCropFilter(CompositeFilter):
@@ -25,6 +26,7 @@ class HSVBlurCropFilter(CompositeFilter):
         logical_filters.append(HSVLogicalFilter.default())
         resizers = []
         resizers.append(CropResizer.from_image(img))
+        resizers.append(ResolutionChangeResizer.default(resol_min=48, resol_max=248))
         return cls.construct_tunable(filteres, logical_filters, resizers)
 
 
