@@ -7,6 +7,7 @@ import cv2
 import numpy as np
 from typing import Dict, List, Optional
 
+
 @dataclass
 class TrackBarConfig:
     name: str
@@ -79,7 +80,6 @@ class FilterBase(TunablePrimitive):
         pass
 
 
-@dataclass
 class CropLogicalFilter(LogicalFilterBase):
 
     @classmethod
@@ -101,7 +101,35 @@ class CropLogicalFilter(LogicalFilterBase):
         arr[:, self.values['crop_y_max']:] = False
         return arr
 
-@dataclass
+
+class HSVLogicalFilter(LogicalFilterBase):
+
+    @classmethod
+    def default(cls):
+        configs = []
+        configs.append(TrackBarConfig('h_min', 0, 255))
+        configs.append(TrackBarConfig('h_max', 0, 255))
+        configs.append(TrackBarConfig('s_min', 0, 255))
+        configs.append(TrackBarConfig('s_max', 0, 255))
+        configs.append(TrackBarConfig('v_min', 0, 255))
+        configs.append(TrackBarConfig('v_max', 0, 255))
+        return cls(configs)
+
+    def _call_impl(self, rgb: np.ndarray) -> np.ndarray:
+        assert self.values is not None
+        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
+        bool_mat = np.ones(rgb.shape[:2], dtype=bool)
+        for i, t in enumerate(['h', 's', 'v']) :
+            key_min = t + '_min'
+            key_max = t + '_max'
+            b_min = self.values[key_min]
+            b_max = self.values[key_max]
+            bool_mat_local = np.logical_and(hsv[:, :, i] >= b_min, hsv[:, :, i] <= b_max)
+            bool_mat *= bool_mat_local
+        return bool_mat
+
+
 class GaussianBlurFilter(FilterBase):
 
     @classmethod
@@ -135,29 +163,3 @@ class CompositeFilter(Tunable):
     def reflect_trackbar(self) -> None:
         for primitive in self.converters + self.segmetors:
             primitive.reflect_trackbar()
-
-
-class BlurCropConverter(CompositeFilter):
-
-    @classmethod
-    def from_image(cls, img: np.ndarray):
-        converters = []
-        converters.append(GaussianBlurFilter.default())
-        segmentors = []
-        segmentors.append(CropLogicalFilter.from_image(img))
-        return cls(converters, segmentors)
-
-
-if __name__ == '__main__':
-    img = np.random.randint(0, high=255, size=(224, 224, 3)).astype(np.uint8)
-    cv2.namedWindow('window')
-
-    composite_converter = BlurCropConverter.from_image(img)
-
-    while True:
-        img_show = composite_converter(img)
-        cv2.imshow('window', img_show)
-        composite_converter.reflect_trackbar()
-
-        if cv2.waitKey(50) == ord('q'):
-            break
