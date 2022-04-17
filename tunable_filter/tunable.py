@@ -121,13 +121,15 @@ class TunablePrimitive(Tunable):
 
 class LogicalFilterBase(TunablePrimitive):
 
-    def __call__(self, rgb: np.ndarray) -> np.ndarray:
-        assert rgb.ndim == 3
-        assert rgb.dtype == np.uint8
+    def __call__(self, rgb: np.ndarray, ignore_assertion: bool = False) -> np.ndarray:
+        if not ignore_assertion:
+            assert rgb.ndim == 3
+            assert rgb.dtype == np.uint8
         out = self._call_impl(rgb)
-        assert rgb.shape[:2] == out.shape[:2]
-        assert out.ndim == 2
-        assert out.dtype == bool
+        if not ignore_assertion:
+            assert rgb.shape[:2] == out.shape[:2]
+            assert out.ndim == 2
+            assert out.dtype == bool
         return out
 
     @abstractmethod
@@ -137,13 +139,15 @@ class LogicalFilterBase(TunablePrimitive):
 
 class FilterBase(TunablePrimitive):
 
-    def __call__(self, rgb: np.ndarray) -> np.ndarray:
-        assert rgb.ndim == 3
-        assert rgb.dtype == np.uint8
+    def __call__(self, rgb: np.ndarray, ignore_assertion: bool = False) -> np.ndarray:
+        if not ignore_assertion:
+            assert rgb.ndim == 3
+            assert rgb.dtype == np.uint8
         out = self._call_impl(rgb)
-        assert rgb.shape == out.shape
-        assert out.ndim == 3
-        assert out.dtype == np.uint8
+        if not ignore_assertion:
+            assert rgb.shape == out.shape
+            assert out.ndim == 3
+            assert out.dtype == np.uint8
         return out
 
     @abstractmethod
@@ -153,14 +157,16 @@ class FilterBase(TunablePrimitive):
 
 class ResizerBase(TunablePrimitive):
 
-    def __call__(self, rgb: np.ndarray) -> np.ndarray:
-        assert rgb.ndim == 3
-        assert rgb.dtype == np.uint8
+    def __call__(self, rgb: np.ndarray, ignore_assertion: bool = False) -> np.ndarray:
+        if not ignore_assertion:
+            assert rgb.ndim == 3
+            assert rgb.dtype == np.uint8
         out = self._call_impl(rgb)
         if out.shape[0] < 5 or out.shape[1] < 5:
             out = np.zeros((5, 5, 3), dtype=np.uint8)
-        assert out.ndim == 3
-        assert out.dtype == np.uint8
+        if not ignore_assertion:
+            assert out.ndim == 3
+            assert out.dtype == np.uint8
         return out
 
     @abstractmethod
