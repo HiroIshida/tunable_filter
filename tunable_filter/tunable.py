@@ -2,9 +2,10 @@
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass
+import queue
 import cv2
 import numpy as np
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Type, TypeVar
 
 _window_name = 'window'
 _initialized = {'?': False}
@@ -15,6 +16,9 @@ class TrackBarConfig:
     name: str
     val_min: int
     val_max: int
+
+
+TunableT = TypeVar('TunableT', bound='Tunable')
 
 
 @dataclass  # type: ignore
@@ -31,6 +35,11 @@ class Tunable(ABC):
 
     @abstractmethod
     def export_dict(self) -> Dict:
+        pass
+
+    @classmethod
+    @abstractmethod
+    def from_dict(cls: Type[TunableT], dic: Dict) -> TunableT:
         pass
 
     def start_tuning(self, img: np.ndarray):
@@ -71,6 +80,10 @@ class TunablePrimitive(Tunable):
                     config.val_max,
                     lambda x: None)
                 self.values[config.name] = int(0.5 * (config.val_min + config.val_max))
+
+    @classmethod
+    def from_dict(cls, dic):
+        return cls([], dic)
 
     @classmethod
     def create_tunable(cls, configs: List[TrackBarConfig]):
@@ -217,6 +230,20 @@ class CropResizer(ResizerBase):
         return out
 
 
+def get_all_concrete_tunable_primitive_types() -> List[Type[TunablePrimitive]]:
+    concrete_types: List[Type] = []
+    q = queue.Queue()  # type: ignore
+    q.put(TunablePrimitive)
+    while not q.empty():
+        t: Type = q.get()
+        if len(t.__subclasses__()) == 0:
+            concrete_types.append(t)
+
+        for st in t.__subclasses__():
+            q.put(st)
+    return list(set(concrete_types))
+
+
 @dataclass
 class CompositeFilter(Tunable):
     converters: List[FilterBase]
@@ -240,6 +267,26 @@ class CompositeFilter(Tunable):
         for primitives in [self.converters, self.segmetors, self.resizers]:
             for p in primitives:  # type: ignore
                 p.reflect_trackbar()
+
+    @classmethod
+    def from_dict(cls, dic):
+        types = get_all_concrete_tunable_primitive_types()
+
+        converters = []
+        segmentors = []
+        resizers = []
+        for key, subdict in dic.items():
+            for t in types:
+                if key == t.__name__:
+                    primitive = t.from_dict(subdict)
+                    if issubclass(t, FilterBase):
+                        converters.append(primitive)
+                    if issubclass(t, LogicalFilterBase):
+                        segmentors.append(primitive)
+                    if issubclass(t, ResizerBase):
+                        resizers.append(primitive)
+
+        return cls(False, converters, segmentors, resizers)
 
     def export_dict(self) -> Dict:
         d = {}
