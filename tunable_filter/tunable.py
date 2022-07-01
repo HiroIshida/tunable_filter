@@ -6,7 +6,7 @@ import queue
 import yaml
 import cv2
 import numpy as np
-from typing import Dict, List, Optional, Type, TypeVar
+from typing import Dict, List, Optional, Type, TypeVar, Callable
 
 _window_name = 'window'
 _initialized = {'?': False}
@@ -53,7 +53,7 @@ class Tunable(ABC):
     def from_dict(cls: Type[TunableT], dic: Dict) -> TunableT:
         pass
 
-    def start_tuning(self, img: np.ndarray):
+    def start_tuning(self, img: np.ndarray, callback: Optional[Callable] = None):
         img_orig = deepcopy(img)
         assert self.tunable
         assert img.ndim == 3
@@ -63,6 +63,8 @@ class Tunable(ABC):
             shape_show = tuple(reversed(img_orig.shape[:2]))
             img_show = cv2.resize(img_out, shape_show, interpolation=cv2.INTER_NEAREST)
             cv2.imshow(_window_name, img_show)
+            if callback is not None:
+                callback(self)
             self.reflect_trackbar()
             if cv2.waitKey(50) == ord('q'):
                 break
