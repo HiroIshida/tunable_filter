@@ -12,7 +12,7 @@ install_requires = [
 
 setup(
     name='tunable_filter',
-    version='0.0.4',
+    version='0.0.5',
     description='Tunable image filter',
     author='Hirokazu Ishida',
     author_email='h-ishida@jsk.imi.i.u-tokyo.ac.jp',
