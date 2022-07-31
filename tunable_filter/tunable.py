@@ -116,14 +116,14 @@ class TunablePrimitive(Tunable):
         return cls(True, configs, *args, **kwargs)
 
     def reflect_trackbar(self) -> None:
-        """ udpate values according to trackbar position """
+        """udpate values according to trackbar position """
         assert self.values is not None
         for config in self.configs:
             fullname = self.get_fullname(config.name)
             self.values[config.name] = cv2.getTrackbarPos(fullname, self.window_name)
 
     def update_trackbar_pos(self) -> None:
-        """ udpate trackbar position according to values """
+        """udpate trackbar position according to values """
         assert self.values is not None
         for config in self.configs:
             fullname = self.get_fullname(config.name)
