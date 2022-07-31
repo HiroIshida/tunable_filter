@@ -17,6 +17,7 @@ if __name__ == '__main__':
     if tuning:
         tunable = HSVBlurCropResolFilter.from_image(img)
         print('press q to finish tuning')
+        tunable.launch_window()
         tunable.start_tuning(img)
         pprint.pprint(tunable.export_dict())
         tunable.dump_yaml(yaml_file_path)
