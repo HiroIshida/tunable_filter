@@ -6,7 +6,7 @@ import queue
 import yaml
 import cv2
 import numpy as np
-from typing import Dict, List, Optional, Type, TypeVar, Callable
+from typing import Any, Dict, List, Optional, Type, TypeVar, Callable
 
 _window_name = 'window'
 _initialized = {'?': False}
