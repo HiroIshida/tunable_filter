@@ -54,6 +54,7 @@ class Tunable(ABC):
         pass
 
     def start_tuning(self, img: np.ndarray, callback: Optional[Callable] = None):
+        assert _initialized["?"]
         img_orig = deepcopy(img)
         assert self.tunable
         assert img.ndim == 3
@@ -83,11 +84,6 @@ class TunablePrimitive(Tunable):
         if not self.tunable:
             return
 
-        if not _initialized['?']:
-            cv2.namedWindow(_window_name)
-            _initialized['?'] = True
-            print('initialize window')
-
         if self.values is None:
             # auto set initial values
             self.values = {}
@@ -99,13 +95,25 @@ class TunablePrimitive(Tunable):
                 else:
                     default_value = int(0.5 * (config.val_max + config.val_min))
 
-                cv2.createTrackbar(
-                    self.get_fullname(config.name),
-                    self.window_name,
-                    default_value,
-                    config.val_max,
-                    lambda x: None)
                 self.values[config.name] = default_value
+
+    def launch_window(self) -> None:
+
+        if not _initialized['?']:
+            cv2.namedWindow(_window_name)
+            _initialized['?'] = True
+            print('initialize window')
+
+        assert self.values is not None
+
+        for config in self.configs:
+            default_value = self.values[config.name]
+            cv2.createTrackbar(
+                self.get_fullname(config.name),
+                self.window_name,
+                default_value,
+                config.val_max,
+                lambda x: None)
 
     @classmethod
     def from_dict(cls, dic):
@@ -329,7 +337,8 @@ class CompositeFilter(Tunable):
         assert tunable is not None
         assert tunable.values is not None
         tunable.values[key] = val
-        self.update_trackbar_pos()
+        if _initialized["?"]:
+            self.update_trackbar_pos()
 
     def __call__(self, img_inp: np.ndarray, ignore_assertion: bool = False) -> np.ndarray:
         img_out = deepcopy(img_inp)
@@ -353,6 +362,11 @@ class CompositeFilter(Tunable):
         for primitives in [self.filters, self.logical_filters, self.resizers]:
             for p in primitives:  # type: ignore
                 p.update_trackbar_pos()
+
+    def launch_window(self) -> None:
+        for primitives in [self.filters, self.logical_filters, self.resizers]:
+            for p in primitives:  # type: ignore
+                p.launch_window()
 
     @classmethod
     def construct_tunable(cls,
