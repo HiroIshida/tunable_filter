@@ -31,7 +31,7 @@ class Tunable(ABC):
         pass
 
     @abstractmethod
-    def __call__(self, rgb: np.ndarray) -> np.ndarray:
+    def __call__(self, img: np.ndarray) -> np.ndarray:
         pass
 
     @abstractmethod
@@ -57,7 +57,7 @@ class Tunable(ABC):
         assert _initialized["?"]
         img_orig = deepcopy(img)
         assert self.tunable
-        assert img.ndim == 3
+        assert img.ndim in (2, 3)
         assert img.dtype == np.uint8
         while True:
             img_out = self.__call__(img)
@@ -167,38 +167,38 @@ class LogicalFilterBase(TunablePrimitive):
 
 class FilterBase(TunablePrimitive):
 
-    def __call__(self, rgb: np.ndarray, ignore_assertion: bool = False) -> np.ndarray:
+    def __call__(self, img: np.ndarray, ignore_assertion: bool = False) -> np.ndarray:
         if not ignore_assertion:
-            assert rgb.ndim == 3
-            assert rgb.dtype == np.uint8
-        out = self._call_impl(rgb)
+            assert img.ndim in (2, 3)
+            assert img.dtype == np.uint8
+        out = self._call_impl(img)
         if not ignore_assertion:
-            assert rgb.shape == out.shape
-            assert out.ndim == 3
+            assert img.shape == out.shape
+            assert out.ndim == img.ndim
             assert out.dtype == np.uint8
         return out
 
     @abstractmethod
-    def _call_impl(self, rgb: np.ndarray) -> np.ndarray:
+    def _call_impl(self, img: np.ndarray) -> np.ndarray:
         pass
 
 
 class ResizerBase(TunablePrimitive):
 
-    def __call__(self, rgb: np.ndarray, ignore_assertion: bool = False) -> np.ndarray:
+    def __call__(self, img: np.ndarray, ignore_assertion: bool = False) -> np.ndarray:
         if not ignore_assertion:
-            assert rgb.ndim == 3
-            assert rgb.dtype == np.uint8
-        out = self._call_impl(rgb)
+            assert img.ndim in (2, 3)
+            assert img.dtype == np.uint8
+        out = self._call_impl(img)
         if out.shape[0] < 5 or out.shape[1] < 5:
             out = np.zeros((5, 5, 3), dtype=np.uint8)
         if not ignore_assertion:
-            assert out.ndim == 3
+            assert out.ndim == img.ndim
             assert out.dtype == np.uint8
         return out
 
     @abstractmethod
-    def _call_impl(self, rgb: np.ndarray) -> np.ndarray:
+    def _call_impl(self, img: np.ndarray) -> np.ndarray:
         pass
 
 
@@ -260,21 +260,26 @@ class GaussianBlurFilter(FilterBase):
         configs.append(TrackBarConfig('kernel_width', 1, 20))
         return cls.create_tunable(configs)
 
-    def _call_impl(self, rgb: np.ndarray) -> np.ndarray:
+    def _call_impl(self, img: np.ndarray) -> np.ndarray:
         assert self.values is not None
         width = self.values['kernel_width']
         if width > 0:
-            blured = cv2.blur(rgb, (width, width))
+            blured = cv2.blur(img, (width, width))
         else:
-            blured = rgb
+            blured = img
         return blured
 
 
 class CropResizer(ResizerBase):
 
     @classmethod
-    def from_image(cls, rgb: np.ndarray):
-        width, height, _ = rgb.shape
+    def from_image(cls, img: np.ndarray):
+        if img.ndim == 2:
+            width, height = img.shape
+        elif img.ndim == 3:
+            width, height, _ = img.shape
+        else:
+            raise NotImplementedError
         configs = []
         configs.append(TrackBarConfig('x_min', 0, width))
         configs.append(TrackBarConfig('x_max', 0, width))
@@ -297,12 +302,12 @@ class ResolutionChangeResizer(ResizerBase):
         configs.append(TrackBarConfig('resol', resol_min, resol_max))
         return cls.create_tunable(configs)
 
-    def _call_impl(self, rgb: np.ndarray) -> np.ndarray:
+    def _call_impl(self, img: np.ndarray) -> np.ndarray:
         assert self.values is not None
         resol = max(self.values['resol'], 1)
         interp_method = cv2.INTER_CUBIC
-        rgb_resized = cv2.resize(rgb, (resol, resol), interpolation=interp_method)
-        return rgb_resized
+        img_resized = cv2.resize(img, (resol, resol), interpolation=interp_method)
+        return img_resized
 
 
 def get_all_concrete_tunable_primitive_types() -> List[Type[TunablePrimitive]]:
