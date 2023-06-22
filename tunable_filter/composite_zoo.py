@@ -25,3 +25,15 @@ class HSVBlurCropResolFilter(CompositeFilter):
         resizers.append(CropResizer.from_image(img))
         resizers.append(ResolutionChangeResizer.default(resol_min=48, resol_max=248))
         return cls.construct_tunable(filteres, logical_filters, resizers)
+
+
+class BlurCropResolFilter(CompositeFilter):
+    @classmethod
+    def from_image(cls, img: np.ndarray):
+        filteres = []
+        filteres.append(GaussianBlurFilter.default())
+        logical_filters = []
+        resizers = []
+        resizers.append(CropResizer.from_image(img))
+        resizers.append(ResolutionChangeResizer.default(resol_min=48, resol_max=248))
+        return cls.construct_tunable(filteres, logical_filters, resizers)
