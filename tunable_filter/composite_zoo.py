@@ -12,7 +12,7 @@ class HSVBlurCropResolFilter(CompositeFilter):
     # In this example, the factory classmethod is named `from_image`
     # but whatever classmethod name is ok as long as it finally
     # calls construct_tunable to create the filter.
-    # As for factory classmethod in python, prease see:
+    # As for factory classmethod in python, please see:
     # https://stackoverflow.com/questions/682504/what-is-a-clean-pythonic-way-to-implement-multiple-constructors/682545#682545
 
     @classmethod
