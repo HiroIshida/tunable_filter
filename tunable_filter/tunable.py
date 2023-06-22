@@ -8,8 +8,8 @@ import cv2
 import numpy as np
 from typing import Any, Dict, List, Optional, Type, TypeVar, Callable
 
-_window_name = 'window'
-_initialized = {'?': False}
+_window_name = "window"
+_initialized = {"?": False}
 
 
 @dataclass
@@ -19,7 +19,7 @@ class TrackBarConfig:
     val_max: int
 
 
-TunableT = TypeVar('TunableT', bound='Tunable')
+TunableT = TypeVar("TunableT", bound="Tunable")
 
 
 @dataclass  # type: ignore
@@ -31,7 +31,7 @@ class Tunable(ABC):
         pass
 
     @abstractmethod
-    def __call__(self, rgb: np.ndarray) -> np.ndarray:
+    def __call__(self, img: np.ndarray) -> np.ndarray:
         pass
 
     @abstractmethod
@@ -39,12 +39,12 @@ class Tunable(ABC):
         pass
 
     def dump_yaml(self, file_name: str) -> None:
-        with open(file_name, 'w') as f:
+        with open(file_name, "w") as f:
             yaml.dump(self.export_dict(), f, default_flow_style=False)
 
     @classmethod
     def from_yaml(cls: Type[TunableT], file_name: str) -> TunableT:
-        with open(file_name, 'r') as f:
+        with open(file_name, "r") as f:
             dic = yaml.safe_load(f)
         return cls.from_dict(dic)
 
@@ -57,7 +57,7 @@ class Tunable(ABC):
         assert _initialized["?"]
         img_orig = deepcopy(img)
         assert self.tunable
-        assert img.ndim == 3
+        assert img.ndim in (2, 3)
         assert img.dtype == np.uint8
         while True:
             img_out = self.__call__(img)
@@ -67,11 +67,11 @@ class Tunable(ABC):
             if callback is not None:
                 callback(self)
             self.reflect_trackbar()
-            if cv2.waitKey(50) == ord('q'):
+            if cv2.waitKey(50) == ord("q"):
                 break
 
 
-TunablePrimitiveT = TypeVar('TunablePrimitiveT', bound='TunablePrimitive')
+TunablePrimitiveT = TypeVar("TunablePrimitiveT", bound="TunablePrimitive")
 
 
 @dataclass  # type: ignore
@@ -88,9 +88,9 @@ class TunablePrimitive(Tunable):
             # auto set initial values
             self.values = {}
             for config in self.configs:
-                if config.name.endswith('min'):
+                if config.name.endswith("min"):
                     default_value = config.val_min
-                elif config.name.endswith('max'):
+                elif config.name.endswith("max"):
                     default_value = config.val_max
                 else:
                     default_value = int(0.5 * (config.val_max + config.val_min))
@@ -99,10 +99,10 @@ class TunablePrimitive(Tunable):
 
     def launch_window(self) -> None:
 
-        if not _initialized['?']:
+        if not _initialized["?"]:
             cv2.namedWindow(_window_name)
-            _initialized['?'] = True
-            print('initialize window')
+            _initialized["?"] = True
+            print("initialize window")
 
         assert self.values is not None
 
@@ -113,7 +113,8 @@ class TunablePrimitive(Tunable):
                 self.window_name,
                 default_value,
                 config.val_max,
-                lambda x: None)
+                lambda x: None,
+            )
 
     @classmethod
     def from_dict(cls, dic):
@@ -124,14 +125,14 @@ class TunablePrimitive(Tunable):
         return cls(True, configs, *args, **kwargs)
 
     def reflect_trackbar(self) -> None:
-        """udpate values according to trackbar position """
+        """udpate values according to trackbar position"""
         assert self.values is not None
         for config in self.configs:
             fullname = self.get_fullname(config.name)
             self.values[config.name] = cv2.getTrackbarPos(fullname, self.window_name)
 
     def update_trackbar_pos(self) -> None:
-        """udpate trackbar position according to values """
+        """udpate trackbar position according to values"""
         assert self.values is not None
         for config in self.configs:
             fullname = self.get_fullname(config.name)
@@ -144,11 +145,10 @@ class TunablePrimitive(Tunable):
 
     @classmethod
     def get_fullname(cls, name):
-        return cls.__name__ + ':' + name
+        return cls.__name__ + ":" + name
 
 
 class LogicalFilterBase(TunablePrimitive):
-
     def __call__(self, rgb: np.ndarray, ignore_assertion: bool = False) -> np.ndarray:
         if not ignore_assertion:
             assert rgb.ndim == 3
@@ -166,75 +166,71 @@ class LogicalFilterBase(TunablePrimitive):
 
 
 class FilterBase(TunablePrimitive):
-
-    def __call__(self, rgb: np.ndarray, ignore_assertion: bool = False) -> np.ndarray:
+    def __call__(self, img: np.ndarray, ignore_assertion: bool = False) -> np.ndarray:
         if not ignore_assertion:
-            assert rgb.ndim == 3
-            assert rgb.dtype == np.uint8
-        out = self._call_impl(rgb)
+            assert img.ndim in (2, 3)  # for H, W and H, W, C
+            assert img.dtype == np.uint8
+        out = self._call_impl(img)
         if not ignore_assertion:
-            assert rgb.shape == out.shape
-            assert out.ndim == 3
+            assert img.shape == out.shape
+            assert out.ndim == img.ndim
             assert out.dtype == np.uint8
         return out
 
     @abstractmethod
-    def _call_impl(self, rgb: np.ndarray) -> np.ndarray:
+    def _call_impl(self, img: np.ndarray) -> np.ndarray:
         pass
 
 
 class ResizerBase(TunablePrimitive):
-
-    def __call__(self, rgb: np.ndarray, ignore_assertion: bool = False) -> np.ndarray:
+    def __call__(self, img: np.ndarray, ignore_assertion: bool = False) -> np.ndarray:
         if not ignore_assertion:
-            assert rgb.ndim == 3
-            assert rgb.dtype == np.uint8
-        out = self._call_impl(rgb)
+            assert img.ndim in (2, 3)
+            assert img.dtype == np.uint8
+        out = self._call_impl(img)
         if out.shape[0] < 5 or out.shape[1] < 5:
             out = np.zeros((5, 5, 3), dtype=np.uint8)
         if not ignore_assertion:
-            assert out.ndim == 3
+            assert out.ndim == img.ndim
             assert out.dtype == np.uint8
         return out
 
     @abstractmethod
-    def _call_impl(self, rgb: np.ndarray) -> np.ndarray:
+    def _call_impl(self, img: np.ndarray) -> np.ndarray:
         pass
 
 
 class CropLogicalFilter(LogicalFilterBase):
-
     @classmethod
     def from_image(cls, rgb: np.ndarray):
         width, height, _ = rgb.shape
         configs = []
-        configs.append(TrackBarConfig('x_min', 0, width))
-        configs.append(TrackBarConfig('x_max', 0, width))
-        configs.append(TrackBarConfig('y_min', 0, height))
-        configs.append(TrackBarConfig('y_max', 0, height))
+        configs.append(TrackBarConfig("x_min", 0, width))
+        configs.append(TrackBarConfig("x_max", 0, width))
+        configs.append(TrackBarConfig("y_min", 0, height))
+        configs.append(TrackBarConfig("y_max", 0, height))
         return cls.create_tunable(configs)
 
     def _call_impl(self, rgb: np.ndarray) -> np.ndarray:
         assert self.values is not None
         arr = np.ones(rgb.shape[:2], dtype=bool)
-        arr[:self.values['x_min'], :] = False
-        arr[self.values['x_max']:, :] = False
-        arr[:, :self.values['y_min']] = False
-        arr[:, self.values['y_max']:] = False
+        arr[: self.values["x_min"], :] = False
+        arr[self.values["x_max"] :, :] = False
+        arr[:, : self.values["y_min"]] = False
+        arr[:, self.values["y_max"] :] = False
         return arr
 
 
 class HSVLogicalFilter(LogicalFilterBase):
-
     @classmethod
     def default(cls):
         configs = []
-        configs.append(TrackBarConfig('h_min', 0, 255))
-        configs.append(TrackBarConfig('h_max', 0, 255))
-        configs.append(TrackBarConfig('s_min', 0, 255))
-        configs.append(TrackBarConfig('s_max', 0, 255))
-        configs.append(TrackBarConfig('v_min', 0, 255))
-        configs.append(TrackBarConfig('v_max', 0, 255))
+        configs.append(TrackBarConfig("h_min", 0, 255))
+        configs.append(TrackBarConfig("h_max", 0, 255))
+        configs.append(TrackBarConfig("s_min", 0, 255))
+        configs.append(TrackBarConfig("s_max", 0, 255))
+        configs.append(TrackBarConfig("v_min", 0, 255))
+        configs.append(TrackBarConfig("v_max", 0, 255))
         return cls.create_tunable(configs)
 
     def _call_impl(self, rgb: np.ndarray) -> np.ndarray:
@@ -242,67 +238,73 @@ class HSVLogicalFilter(LogicalFilterBase):
         hsv = cv2.cvtColor(rgb, cv2.COLOR_BGR2HSV)
 
         bool_mat = np.ones(rgb.shape[:2], dtype=bool)
-        for i, t in enumerate(['h', 's', 'v']):
-            key_min = t + '_min'
-            key_max = t + '_max'
+        for i, t in enumerate(["h", "s", "v"]):
+            key_min = t + "_min"
+            key_max = t + "_max"
             b_min = self.values[key_min]
             b_max = self.values[key_max]
-            bool_mat_local = np.logical_and(hsv[:, :, i] >= b_min, hsv[:, :, i] <= b_max)
+            bool_mat_local = np.logical_and(
+                hsv[:, :, i] >= b_min, hsv[:, :, i] <= b_max
+            )
             bool_mat *= bool_mat_local
         return bool_mat
 
 
 class GaussianBlurFilter(FilterBase):
-
     @classmethod
     def default(cls):
         configs = []
-        configs.append(TrackBarConfig('kernel_width', 1, 20))
+        configs.append(TrackBarConfig("kernel_width", 1, 20))
         return cls.create_tunable(configs)
 
-    def _call_impl(self, rgb: np.ndarray) -> np.ndarray:
+    def _call_impl(self, img: np.ndarray) -> np.ndarray:
         assert self.values is not None
-        width = self.values['kernel_width']
+        width = self.values["kernel_width"]
         if width > 0:
-            blured = cv2.blur(rgb, (width, width))
+            blured = cv2.blur(img, (width, width))
         else:
-            blured = rgb
+            blured = img
         return blured
 
 
 class CropResizer(ResizerBase):
-
     @classmethod
-    def from_image(cls, rgb: np.ndarray):
-        width, height, _ = rgb.shape
+    def from_image(cls, img: np.ndarray):
+        if img.ndim == 2:  # for Gray Scale Image
+            width, height = img.shape
+        elif img.ndim == 3:  # for RGB Image
+            width, height, _ = img.shape
+        else:
+            raise NotImplementedError
         configs = []
-        configs.append(TrackBarConfig('x_min', 0, width))
-        configs.append(TrackBarConfig('x_max', 0, width))
-        configs.append(TrackBarConfig('y_min', 0, height))
-        configs.append(TrackBarConfig('y_max', 0, height))
+        configs.append(TrackBarConfig("x_min", 0, width))
+        configs.append(TrackBarConfig("x_max", 0, width))
+        configs.append(TrackBarConfig("y_min", 0, height))
+        configs.append(TrackBarConfig("y_max", 0, height))
         return cls.create_tunable(configs)
 
-    def _call_impl(self, rgb: np.ndarray) -> np.ndarray:
+    def _call_impl(self, img: np.ndarray) -> np.ndarray:
         assert self.values is not None
-        out = rgb[self.values['x_min']:self.values['x_max'], self.values['y_min']:self.values['y_max']]
+        out = img[
+            self.values["x_min"] : self.values["x_max"],
+            self.values["y_min"] : self.values["y_max"],
+        ]
         return out
 
 
 class ResolutionChangeResizer(ResizerBase):
     @classmethod
-    def default(cls,
-                resol_min: int = 8,
-                resol_max: int = 1024):
+    def default(cls, resol_min: int = 8, resol_max: int = 1024):
         configs = []
-        configs.append(TrackBarConfig('resol', resol_min, resol_max))
+        configs.append(TrackBarConfig("resol", resol_min, resol_max))
         return cls.create_tunable(configs)
 
-    def _call_impl(self, rgb: np.ndarray) -> np.ndarray:
+    def _call_impl(self, img: np.ndarray) -> np.ndarray:
         assert self.values is not None
-        resol = max(self.values['resol'], 1)
+        resol = max(self.values["resol"], 1)
         interp_method = cv2.INTER_CUBIC
-        rgb_resized = cv2.resize(rgb, (resol, resol), interpolation=interp_method)
-        return rgb_resized
+        img_resized = cv2.resize(img, (resol, resol), interpolation=interp_method)
+        return img_resized
 
 
 def get_all_concrete_tunable_primitive_types() -> List[Type[TunablePrimitive]]:
@@ -325,7 +327,9 @@ class CompositeFilter(Tunable):
     logical_filters: List[LogicalFilterBase]
     resizers: List[ResizerBase]
 
-    def get_primitive_tunable(self, tunable_type: Type[TunablePrimitiveT]) -> Optional[TunablePrimitiveT]:
+    def get_primitive_tunable(
+        self, tunable_type: Type[TunablePrimitiveT]
+    ) -> Optional[TunablePrimitiveT]:
         tunables = self.filters + self.logical_filters + self.resizers  # type: ignore
         for tunable in tunables:
             if isinstance(tunable, tunable_type):
@@ -340,7 +344,9 @@ class CompositeFilter(Tunable):
         if _initialized["?"]:
             self.update_trackbar_pos()
 
-    def __call__(self, img_inp: np.ndarray, ignore_assertion: bool = False) -> np.ndarray:
+    def __call__(
+        self, img_inp: np.ndarray, ignore_assertion: bool = False
+    ) -> np.ndarray:
         img_out = deepcopy(img_inp)
         for converter in self.filters:
             img_out = converter(img_out, ignore_assertion=ignore_assertion)
@@ -369,14 +375,16 @@ class CompositeFilter(Tunable):
                 p.launch_window()
 
     @classmethod
-    def construct_tunable(cls,
-                          filters: List[FilterBase],
-                          logical_filters: List[LogicalFilterBase],
-                          resizers: List[ResizerBase]) -> 'CompositeFilter':
+    def construct_tunable(
+        cls,
+        filters: List[FilterBase],
+        logical_filters: List[LogicalFilterBase],
+        resizers: List[ResizerBase],
+    ) -> "CompositeFilter":
         return cls(True, filters, logical_filters, resizers)
 
     @classmethod
-    def from_dict(cls, dic) -> 'CompositeFilter':
+    def from_dict(cls, dic) -> "CompositeFilter":
         types = get_all_concrete_tunable_primitive_types()
 
         filters = []
@@ -395,7 +403,9 @@ class CompositeFilter(Tunable):
 
         return cls.construct_tunable(filters, logical_filters, resizers)
 
-    def extract_subfilter(self, keys: List[Type[TunablePrimitive]]) -> 'CompositeFilter':
+    def extract_subfilter(
+        self, keys: List[Type[TunablePrimitive]]
+    ) -> "CompositeFilter":
         filters = []
         logical_filters = []
         resizers = []
